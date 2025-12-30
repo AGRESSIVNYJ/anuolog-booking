@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Appointment {
+  id        Int      @id @default(autoincrement())
+  clientName String
+  phone     String
+  email     String?
+  date      DateTime
+  time      String
+  notes     String?
+  status    String   @default("pending") // pending, confirmed, cancelled, completed
+  reminder24hSent Boolean @default(false) // Отправлено ли напоминание за 24 часа
+  reminder3hSent Boolean @default(false) // Отправлено ли напоминание за 3 часа
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id            Int     @id @default(autoincrement())
+  workDays      String  @default("[1,2,3,4,5]") // JSON массив: 0=воскресенье, 1=понедельник, ..., 6=суббота
+  workStartTime String  @default("09:00") // Время начала работы
+  workEndTime   String  @default("19:00") // Время окончания работы
+  sessionDuration Int   @default(30) // Длительность сеанса в минутах
+  breakStartTime String? // Время начала перерыва (опционально)
+  breakEndTime   String? // Время окончания перерыва (опционально)
+  officeAddress String? // Адрес кабинета
+  sessionPrice Int? // Стоимость сеанса в тенге
+  whatsappEnabled Boolean @default(false) // Включена ли отправка в WhatsApp
+  whatsappApiId String? // ID API для WhatsApp (Green API)
+  whatsappApiToken String? // Токен API для WhatsApp
+  whatsappPhoneNumber String? // Номер телефона для WhatsApp (формат: 77012345678)
+  confirmationMessageTemplate String? // Шаблон сообщения подтверждения записи
+  reminderMessageTemplate String? // Шаблон сообщения напоминания
+  updatedAt     DateTime @updatedAt
+}
+
+model BlockedDate {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @unique // Заблокированная дата
+  reason      String?  // Причина блокировки (отпуск, праздник и т.д.)
+  createdAt   DateTime @default(now())
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  clientName String  // Имя клиента
+  rating    Int      // Рейтинг от 1 до 5
+  comment   String?  // Текст отзыва
+  status    String   @default("pending") // pending, approved, rejected
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

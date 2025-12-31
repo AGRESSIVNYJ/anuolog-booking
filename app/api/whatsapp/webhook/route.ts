@@ -96,6 +96,27 @@ export async function POST(request: NextRequest) {
       // Ищем ближайшую активную запись этого клиента
       const now = new Date()
       
+      // Сначала получаем ВСЕ записи для отладки (включая отмененные и прошедшие)
+      const allAppointmentsDebug = await prisma.appointment.findMany({
+        orderBy: {
+          date: 'desc', // Последние записи сначала
+        },
+        take: 10, // Последние 10 записей
+      })
+      
+      console.log('Последние 10 записей в базе (для отладки):', {
+        count: allAppointmentsDebug.length,
+        appointments: allAppointmentsDebug.map(a => ({
+          id: a.id,
+          phone: a.phone,
+          phoneNormalized: a.phone.replace(/\D/g, '').slice(-10),
+          date: a.date,
+          time: a.time,
+          status: a.status,
+          clientName: a.clientName
+        }))
+      })
+      
       // Получаем все активные записи
       const allAppointments = await prisma.appointment.findMany({
         where: {
@@ -109,6 +130,19 @@ export async function POST(request: NextRequest) {
         orderBy: {
           date: 'asc', // Ближайшая запись первой
         },
+      })
+      
+      console.log('Активные будущие записи:', {
+        count: allAppointments.length,
+        now: now.toISOString(),
+        appointments: allAppointments.map(a => ({
+          id: a.id,
+          phone: a.phone,
+          phoneNormalized: a.phone.replace(/\D/g, '').slice(-10),
+          date: a.date.toISOString(),
+          time: a.time,
+          status: a.status
+        }))
       })
 
       // Фильтруем по номеру телефона (нормализуем номера для сравнения)

@@ -529,6 +529,9 @@ export default function SettingsPage() {
                       <li><code className="bg-blue-100 px-1 rounded">{"{price}"}</code> - Стоимость сеанса (если указана)</li>
                       <li><code className="bg-blue-100 px-1 rounded">{"{address}"}</code> - Адрес кабинета (если указан)</li>
                     </ul>
+                    <p className="text-sm text-blue-800 mt-2">
+                      <strong>Для шаблона напоминания:</strong> также доступна переменная <code className="bg-blue-100 px-1 rounded">{"{hoursBefore}"}</code> - время до записи (24 часа или 3 часа)
+                    </p>
                   </div>
 
                   <div>
@@ -576,15 +579,18 @@ export default function SettingsPage() {
 
                   <div>
                     <label htmlFor="reminderMessageTemplate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Шаблон сообщения напоминания (за 3 часа)
+                      Шаблон сообщения напоминания (используется для напоминаний за 24 часа и за 3 часа)
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Используйте переменную <code className="bg-gray-100 px-1 rounded">{"{hoursBefore}"}</code> для указания времени до записи (автоматически подставится "24 часа" или "3 часа")
+                    </p>
                     <textarea
                       id="reminderMessageTemplate"
                       value={reminderMessageTemplate}
                       onChange={(e) => setReminderMessageTemplate(e.target.value)}
                       rows={12}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
-                      placeholder={`⏰ *Напоминание: до вашей записи осталось 3 часа!*
+                      placeholder={`⏰ *Напоминание: до вашей записи осталось {hoursBefore}!*
 
 👤 *Уважаемый(ая) {firstName}!*
 

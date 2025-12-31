@@ -220,6 +220,7 @@ export function formatReminderMessage(
     message = message.replace(/{firstName}/g, firstName)
     message = message.replace(/{date}/g, dateStr)
     message = message.replace(/{time}/g, time)
+    message = message.replace(/{hoursBefore}/g, hoursBefore)
     
     // Обработка цены - показываем только если указана
     if (sessionPrice !== null && sessionPrice !== undefined && sessionPrice > 0) {

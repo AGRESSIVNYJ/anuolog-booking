@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
     // Пробуем разные варианты получения текста сообщения
     let messageText: string | undefined = undefined
     
-    if (messageData?.textMessage) {
+    // Green API формат: messageData.textMessageData.textMessage
+    if (messageData?.textMessageData?.textMessage) {
+      messageText = messageData.textMessageData.textMessage
+    } else if (messageData?.textMessage) {
       messageText = messageData.textMessage
     } else if (messageData?.extendedTextMessage?.text) {
       messageText = messageData.extendedTextMessage.text

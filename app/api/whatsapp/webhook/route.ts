@@ -44,8 +44,21 @@ export async function POST(request: NextRequest) {
     const normalizedSearchPhone = searchPhone.slice(-10)
 
     // Проверяем команды отмены
-    const cancelCommands = ['2', 'отмена', 'отменить', 'cancel', 'отменить запись', 'отменить сеанс']
-    const isCancelCommand = cancelCommands.some(cmd => messageText === cmd || messageText.includes(cmd))
+    const cancelCommands = ['2', 'отмена', 'отменить', 'cancel', 'отменить запись', 'отменить сеанс', 'отмена записи']
+    const isCancelCommand = cancelCommands.some(cmd => {
+      const normalizedCmd = cmd.toLowerCase().trim()
+      const normalizedMsg = messageText.toLowerCase().trim()
+      return normalizedMsg === normalizedCmd || normalizedMsg.includes(normalizedCmd)
+    })
+    
+    console.log('Проверка команды отмены:', {
+      messageText,
+      isCancelCommand,
+      senderPhone,
+      cleanPhone,
+      searchPhone,
+      normalizedSearchPhone
+    })
 
     if (isCancelCommand) {
       // Ищем ближайшую активную запись этого клиента
@@ -70,11 +83,29 @@ export async function POST(request: NextRequest) {
       const matchingAppointments = allAppointments.filter(apt => {
         const aptPhone = apt.phone.replace(/\D/g, '')
         const aptNormalized = aptPhone.length >= 10 ? aptPhone.slice(-10) : aptPhone
-        return aptNormalized === normalizedSearchPhone
+        const match = aptNormalized === normalizedSearchPhone
+        
+        console.log('Сравнение номеров:', {
+          appointmentId: apt.id,
+          aptPhone,
+          aptNormalized,
+          searchPhone,
+          normalizedSearchPhone,
+          match
+        })
+        
+        return match
+      })
+
+      console.log('Найдено записей для отмены:', {
+        totalAppointments: allAppointments.length,
+        matchingAppointments: matchingAppointments.length,
+        appointments: matchingAppointments.map(a => ({ id: a.id, phone: a.phone, date: a.date, time: a.time }))
       })
 
       if (matchingAppointments.length === 0) {
         // Не найдено активных записей
+        console.log('Активные записи не найдены для номера:', normalizedSearchPhone)
         const settings = await prisma.settings.findFirst()
         if (settings?.whatsappEnabled && settings.whatsappApiId && settings.whatsappApiToken) {
           await sendWhatsAppMessage(
@@ -87,16 +118,26 @@ export async function POST(request: NextRequest) {
             '❌ У вас нет активных записей для отмены.'
           )
         }
-        return NextResponse.json({ received: true })
+        return NextResponse.json({ received: true, message: 'No active appointments found' })
       }
 
       const appointment = matchingAppointments[0]
 
+      console.log('Отмена записи:', {
+        appointmentId: appointment.id,
+        clientName: appointment.clientName,
+        phone: appointment.phone,
+        date: appointment.date,
+        time: appointment.time
+      })
+
       // Отменяем запись
-      await prisma.appointment.update({
+      const updatedAppointment = await prisma.appointment.update({
         where: { id: appointment.id },
         data: { status: 'cancelled' },
       })
+      
+      console.log('Запись отменена успешно:', updatedAppointment.id)
 
       // Отправляем подтверждение об отмене
       const settings = await prisma.settings.findFirst()

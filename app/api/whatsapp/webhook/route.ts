@@ -117,14 +117,12 @@ export async function POST(request: NextRequest) {
         }))
       })
       
-      // Получаем все активные записи
+      // Получаем все активные записи (не отмененные)
+      // Не фильтруем по дате здесь, так как date может хранить только дату без правильного времени
       const allAppointments = await prisma.appointment.findMany({
         where: {
           status: {
             not: 'cancelled',
-          },
-          date: {
-            gte: now, // Только будущие записи
           },
         },
         orderBy: {
@@ -132,21 +130,40 @@ export async function POST(request: NextRequest) {
         },
       })
       
+      // Фильтруем записи, учитывая дату И время записи
+      const nowWithTime = new Date()
+      const futureAppointments = allAppointments.filter(apt => {
+        // Создаем полную дату+время из date (дата) и time (время записи)
+        const appointmentDate = new Date(apt.date)
+        const [hours, minutes] = apt.time.split(':').map(Number)
+        appointmentDate.setHours(hours, minutes, 0, 0)
+        
+        // Проверяем, что запись в будущем
+        return appointmentDate >= nowWithTime
+      })
+      
       console.log('Активные будущие записи:', {
-        count: allAppointments.length,
-        now: now.toISOString(),
-        appointments: allAppointments.map(a => ({
-          id: a.id,
-          phone: a.phone,
-          phoneNormalized: a.phone.replace(/\D/g, '').slice(-10),
-          date: a.date.toISOString(),
-          time: a.time,
-          status: a.status
-        }))
+        count: futureAppointments.length,
+        totalActive: allAppointments.length,
+        now: nowWithTime.toISOString(),
+        appointments: futureAppointments.map(a => {
+          const appointmentDate = new Date(a.date)
+          const [hours, minutes] = a.time.split(':').map(Number)
+          appointmentDate.setHours(hours, minutes, 0, 0)
+          return {
+            id: a.id,
+            phone: a.phone,
+            phoneNormalized: a.phone.replace(/\D/g, '').slice(-10),
+            date: a.date.toISOString(),
+            time: a.time,
+            fullDateTime: appointmentDate.toISOString(),
+            status: a.status
+          }
+        })
       })
 
       // Фильтруем по номеру телефона (нормализуем номера для сравнения)
-      const matchingAppointments = allAppointments.filter(apt => {
+      const matchingAppointments = futureAppointments.filter(apt => {
         const aptPhone = apt.phone.replace(/\D/g, '')
         const aptNormalized = aptPhone.length >= 10 ? aptPhone.slice(-10) : aptPhone
         const match = aptNormalized === normalizedSearchPhone
@@ -164,7 +181,8 @@ export async function POST(request: NextRequest) {
       })
 
       console.log('Найдено записей для отмены:', {
-        totalAppointments: allAppointments.length,
+        totalActiveAppointments: allAppointments.length,
+        totalFutureAppointments: futureAppointments.length,
         matchingAppointments: matchingAppointments.length,
         appointments: matchingAppointments.map(a => ({ id: a.id, phone: a.phone, date: a.date, time: a.time }))
       })

@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
       whatsappApiToken,
       whatsappPhoneNumber,
       confirmationMessageTemplate,
-      reminderMessageTemplate
+      reminderMessageTemplate,
+      reviewRequestTemplate
     } = body
 
     // Валидация обязательных полей
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
     const whatsappPhone = whatsappPhoneNumber && whatsappPhoneNumber.trim() !== '' ? whatsappPhoneNumber.trim() : null
     const confirmationTemplate = confirmationMessageTemplate && confirmationMessageTemplate.trim() !== '' ? confirmationMessageTemplate.trim() : null
     const reminderTemplate = reminderMessageTemplate && reminderMessageTemplate.trim() !== '' ? reminderMessageTemplate.trim() : null
+    const reviewTemplate = reviewRequestTemplate && reviewRequestTemplate.trim() !== '' ? reviewRequestTemplate.trim() : null
 
     let settings = await prisma.settings.findFirst()
 
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
           whatsappPhoneNumber: whatsappPhone,
           confirmationMessageTemplate: confirmationTemplate,
           reminderMessageTemplate: reminderTemplate,
+          reviewRequestTemplate: reviewTemplate,
         },
       })
     } else {
@@ -119,6 +122,7 @@ export async function POST(request: NextRequest) {
           whatsappPhoneNumber: whatsappPhone,
           confirmationMessageTemplate: confirmationTemplate,
           reminderMessageTemplate: reminderTemplate,
+          reviewRequestTemplate: reviewTemplate,
         },
       })
     }

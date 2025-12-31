@@ -94,6 +94,7 @@ type Settings = {
   whatsappPhoneNumber: string | null
   confirmationMessageTemplate: string | null
   reminderMessageTemplate: string | null
+  reviewRequestTemplate: string | null
 }
 
 const dayNames = [
@@ -126,6 +127,7 @@ export default function SettingsPage() {
   const [whatsappPhoneNumber, setWhatsappPhoneNumber] = useState('')
   const [confirmationMessageTemplate, setConfirmationMessageTemplate] = useState('')
   const [reminderMessageTemplate, setReminderMessageTemplate] = useState('')
+  const [reviewRequestTemplate, setReviewRequestTemplate] = useState('')
 
   useEffect(() => {
     fetchSettings()
@@ -153,6 +155,7 @@ export default function SettingsPage() {
       setWhatsappPhoneNumber(data.whatsappPhoneNumber || '')
       setConfirmationMessageTemplate(data.confirmationMessageTemplate || '')
       setReminderMessageTemplate(data.reminderMessageTemplate || '')
+      setReviewRequestTemplate(data.reviewRequestTemplate || '')
     } catch (error) {
       console.error('Ошибка при загрузке настроек:', error)
     } finally {
@@ -202,6 +205,7 @@ export default function SettingsPage() {
           whatsappPhoneNumber: whatsappPhoneNumber && whatsappPhoneNumber.trim() !== '' ? whatsappPhoneNumber.trim() : null,
           confirmationMessageTemplate: confirmationMessageTemplate && confirmationMessageTemplate.trim() !== '' ? confirmationMessageTemplate.trim() : null,
           reminderMessageTemplate: reminderMessageTemplate && reminderMessageTemplate.trim() !== '' ? reminderMessageTemplate.trim() : null,
+          reviewRequestTemplate: reviewRequestTemplate && reviewRequestTemplate.trim() !== '' ? reviewRequestTemplate.trim() : null,
         }),
       })
 
@@ -617,6 +621,43 @@ export default function SettingsPage() {
 • Для отмены записи отправьте "2"
 
 Жду вас на приёме!`}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Оставьте пустым, чтобы использовать стандартный шаблон
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="reviewRequestTemplate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Шаблон сообщения запроса на отзыв
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Это сообщение будет отправлено клиентам после завершения сеанса (через 1 час). Доступные переменные:
+                    </p>
+                    <ul className="text-xs text-gray-600 mb-2 list-disc list-inside">
+                      <li><code className="bg-blue-100 px-1 rounded">{"{clientName}"}</code> - Полное имя клиента</li>
+                      <li><code className="bg-blue-100 px-1 rounded">{"{firstName}"}</code> - Только имя (первое слово)</li>
+                    </ul>
+                    <textarea
+                      id="reviewRequestTemplate"
+                      value={reviewRequestTemplate}
+                      onChange={(e) => setReviewRequestTemplate(e.target.value)}
+                      rows={10}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                      placeholder={`⭐ *ПРОСЬБА ОБ ОТЗЫВЕ*
+
+👤 *Уважаемый(ая) {firstName}!*
+
+Спасибо, что посетили наш кабинет!
+
+Мы будем очень благодарны, если вы оставите отзыв о вашем визите.
+
+Ваше мнение очень важно для нас и поможет другим людям сделать правильный выбор.
+
+Оставить отзыв можно на нашем сайте:
+https://manuolog.kz
+
+С уважением!`}
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Оставьте пустым, чтобы использовать стандартный шаблон

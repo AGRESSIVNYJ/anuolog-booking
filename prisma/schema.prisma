@@ -21,6 +21,7 @@ model Appointment {
   status    String   @default("pending") // pending, confirmed, cancelled, completed
   reminder24hSent Boolean @default(false) // Отправлено ли напоминание за 24 часа
   reminder3hSent Boolean @default(false) // Отправлено ли напоминание за 3 часа
+  reviewRequestSent Boolean @default(false) // Отправлен ли запрос на отзыв
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -41,6 +42,7 @@ model Settings {
   whatsappPhoneNumber String? // Номер телефона для WhatsApp (формат: 77012345678)
   confirmationMessageTemplate String? // Шаблон сообщения подтверждения записи
   reminderMessageTemplate String? // Шаблон сообщения напоминания
+  reviewRequestTemplate String? // Шаблон сообщения запроса на отзыв
   updatedAt     DateTime @updatedAt
 }
 

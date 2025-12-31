@@ -270,3 +270,30 @@ export function formatReminderMessage(
   return message
 }
 
+export function formatReviewRequestMessage(
+  clientName: string,
+  template?: string | null
+): string {
+  // Извлекаем имя (первое слово)
+  const firstName = clientName.split(' ')[0]
+
+  // Если есть пользовательский шаблон, используем его
+  if (template && template.trim() !== '') {
+    let message = template
+    message = message.replace(/{clientName}/g, clientName)
+    message = message.replace(/{firstName}/g, firstName)
+    return message
+  }
+
+  // Стандартный шаблон
+  let message = `⭐ *ПРОСЬБА ОБ ОТЗЫВЕ*\n\n`
+  message += `👤 *Уважаемый(ая) ${firstName}!*\n\n`
+  message += `Спасибо, что посетили наш кабинет!\n\n`
+  message += `Мы будем очень благодарны, если вы оставите отзыв о вашем визите.\n\n`
+  message += `Ваше мнение очень важно для нас и поможет другим людям сделать правильный выбор.\n\n`
+  message += `Оставить отзыв можно на нашем сайте:\n`
+  message += `https://manuolog.kz\n\n`
+  message += `С уважением!`
+
+  return message
+}

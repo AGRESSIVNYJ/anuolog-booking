@@ -5,6 +5,7 @@ import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import './page.css'
 import ReviewsSection from '@/app/components/ReviewsSection'
+import ShareWidget from '@/app/components/ShareWidget'
 
 type Appointment = {
   id: number
@@ -531,6 +532,9 @@ export default function Home() {
             </button>
           </form>
         </div>
+
+        {/* Виджет "Поделиться" */}
+        <ShareWidget />
 
         {/* Секция отзывов */}
         <ReviewsSection />

@@ -14,20 +14,49 @@ export async function POST(request: NextRequest) {
     // https://green-api.com/docs/api/receiving/notifications-format/
     const { typeWebhook, instanceData, timestamp, idMessage, senderData, messageData } = body
 
-    console.log('Webhook получен:', {
+    // Детальное логирование всего webhook для отладки
+    console.log('Webhook получен (полная структура):', JSON.stringify(body, null, 2))
+    console.log('Webhook получен (кратко):', {
       typeWebhook,
       idMessage,
       senderPhone: senderData?.sender,
-      messageText: messageData?.textMessage,
+      messageDataKeys: messageData ? Object.keys(messageData) : 'нет messageData',
+      messageData: messageData,
     })
 
     // Обрабатываем только входящие текстовые сообщения
-    if (typeWebhook !== 'incomingMessageReceived' || !messageData?.textMessage) {
+    if (typeWebhook !== 'incomingMessageReceived') {
+      console.log('Пропуск: не входящее сообщение, typeWebhook:', typeWebhook)
+      return NextResponse.json({ received: true })
+    }
+
+    // Пробуем разные варианты получения текста сообщения
+    let messageText: string | undefined = undefined
+    
+    if (messageData?.textMessage) {
+      messageText = messageData.textMessage
+    } else if (messageData?.extendedTextMessage?.text) {
+      messageText = messageData.extendedTextMessage.text
+    } else if (messageData?.message?.extendedTextMessage?.text) {
+      messageText = messageData.message.extendedTextMessage.text
+    } else if (messageData?.message?.conversation) {
+      messageText = messageData.message.conversation
+    } else if (typeof messageData === 'string') {
+      messageText = messageData
+    }
+
+    console.log('Извлеченный текст сообщения:', {
+      messageText,
+      messageDataStructure: messageData,
+    })
+
+    if (!messageText) {
+      console.log('Пропуск: текст сообщения не найден')
       return NextResponse.json({ received: true })
     }
 
     const senderPhone = senderData?.sender
-    const messageText = messageData.textMessage.trim().toLowerCase()
+    const normalizedMessageText = messageText.trim().toLowerCase()
 
     if (!senderPhone) {
       return NextResponse.json({ received: true })
@@ -47,12 +76,12 @@ export async function POST(request: NextRequest) {
     const cancelCommands = ['2', 'отмена', 'отменить', 'cancel', 'отменить запись', 'отменить сеанс', 'отмена записи']
     const isCancelCommand = cancelCommands.some(cmd => {
       const normalizedCmd = cmd.toLowerCase().trim()
-      const normalizedMsg = messageText.toLowerCase().trim()
-      return normalizedMsg === normalizedCmd || normalizedMsg.includes(normalizedCmd)
+      return normalizedMessageText === normalizedCmd || normalizedMessageText.includes(normalizedCmd)
     })
     
     console.log('Проверка команды отмены:', {
-      messageText,
+      originalMessageText: messageText,
+      normalizedMessageText,
       isCancelCommand,
       senderPhone,
       cleanPhone,
@@ -141,26 +170,78 @@ export async function POST(request: NextRequest) {
 
       // Отправляем подтверждение об отмене
       const settings = await prisma.settings.findFirst()
+      
+      console.log('Проверка настроек WhatsApp для отправки уведомления об отмене:', {
+        hasSettings: !!settings,
+        whatsappEnabled: settings?.whatsappEnabled,
+        hasApiId: !!settings?.whatsappApiId,
+        hasApiToken: !!settings?.whatsappApiToken,
+        apiId: settings?.whatsappApiId,
+        apiTokenLength: settings?.whatsappApiToken?.length,
+        phoneNumber: settings?.whatsappPhoneNumber
+      })
+      
       if (settings?.whatsappEnabled && settings.whatsappApiId && settings.whatsappApiToken) {
         const appointmentDate = new Date(appointment.date)
         const dateStr = `${appointmentDate.getFullYear()}-${String(appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(appointmentDate.getDate()).padStart(2, '0')}`
+        const firstName = appointment.clientName.split(' ')[0]
         
-        const cancelMessage = `✅ *Запись отменена*\n\n` +
-          `👤 Уважаемый(ая) ${appointment.clientName.split(' ')[0]}!\n\n` +
-          `Ваша запись была успешно отменена:\n\n` +
-          `📅 Дата: ${dateStr}\n` +
-          `⏰ Время: ${appointment.time}\n\n` +
-          `Если у вас возникнут вопросы, свяжитесь с нами.`
+        // Короткое сообщение об отмене
+        const cancelMessage = `❌ *Запись отменена*\n\n` +
+          `👤 Уважаемый(ая) ${firstName}!\n\n` +
+          `Ваша запись на ${dateStr} в ${appointment.time} была успешно отменена.\n\n` +
+          `Если возникнут вопросы, свяжитесь с нами.`
 
-        await sendWhatsAppMessage(
-          {
-            apiId: settings.whatsappApiId,
-            apiToken: settings.whatsappApiToken,
-            phoneNumber: settings.whatsappPhoneNumber || '',
-          },
-          senderPhone.replace('@c.us', ''),
-          cancelMessage
-        )
+        // Очищаем номер телефона отправителя для отправки
+        const recipientPhone = senderPhone.replace('@c.us', '').replace(/\D/g, '')
+        let cleanRecipientPhone = recipientPhone
+        if (!cleanRecipientPhone.startsWith('7')) {
+          cleanRecipientPhone = `7${cleanRecipientPhone}`
+        }
+
+        console.log('Отправка уведомления об отмене:', {
+          recipientPhone: cleanRecipientPhone,
+          originalSenderPhone: senderPhone,
+          appointmentId: appointment.id,
+          clientName: appointment.clientName,
+          date: dateStr,
+          time: appointment.time,
+          messageLength: cancelMessage.length,
+          messagePreview: cancelMessage.substring(0, 100)
+        })
+
+        try {
+          const result = await sendWhatsAppMessage(
+            {
+              apiId: settings.whatsappApiId,
+              apiToken: settings.whatsappApiToken,
+              phoneNumber: settings.whatsappPhoneNumber || '',
+            },
+            cleanRecipientPhone,
+            cancelMessage
+          )
+
+          console.log('Результат отправки уведомления об отмене:', {
+            success: result.success,
+            error: result.error,
+            recipientPhone: cleanRecipientPhone
+          })
+
+          if (result.success) {
+            console.log('✅ Уведомление об отмене успешно отправлено клиенту:', cleanRecipientPhone)
+          } else {
+            console.error('❌ Ошибка при отправке уведомления об отмене:', result.error)
+          }
+        } catch (error) {
+          console.error('❌ Исключение при отправке уведомления об отмене:', error)
+        }
+      } else {
+        console.log('⚠️ WhatsApp отключен или не настроен, уведомление об отмене не отправлено')
+        console.log('Детали:', {
+          whatsappEnabled: settings?.whatsappEnabled,
+          hasApiId: !!settings?.whatsappApiId,
+          hasApiToken: !!settings?.whatsappApiToken
+        })
       }
 
       console.log(`Запись ${appointment.id} отменена клиентом ${senderPhone}`)

@@ -58,6 +58,7 @@ model Review {
   clientName String  // Имя клиента
   rating    Int      // Рейтинг от 1 до 5
   comment   String?  // Текст отзыва
+  instagramUsername String? // Имя пользователя Instagram (без @)
   status    String   @default("pending") // pending, approved, rejected
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

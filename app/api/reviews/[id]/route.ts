@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const id = parseInt(params.id)
     const body = await request.json()
-    const { status } = body
+    const { status, instagramUsername } = body
 
     if (status && !['pending', 'approved', 'rejected'].includes(status)) {
       return NextResponse.json(
@@ -17,9 +17,17 @@ export async function PATCH(
       )
     }
 
+    // Очищаем Instagram username от @ и лишних символов
+    const updateData: any = { ...body }
+    if (instagramUsername !== undefined) {
+      updateData.instagramUsername = instagramUsername 
+        ? instagramUsername.trim().replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '')
+        : null
+    }
+
     const review = await prisma.review.update({
       where: { id },
-      data: body,
+      data: updateData,
     })
 
     return NextResponse.json(review)

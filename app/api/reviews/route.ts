@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { clientName, rating, comment } = body
+    const { clientName, rating, comment, instagramUsername } = body
 
     if (!clientName || !rating) {
       return NextResponse.json(
@@ -46,11 +46,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Очищаем Instagram username от @ и лишних символов
+    const cleanInstagram = instagramUsername 
+      ? instagramUsername.trim().replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '')
+      : null
+
     const review = await prisma.review.create({
       data: {
         clientName,
         rating: ratingNum,
         comment: comment?.trim() || null,
+        instagramUsername: cleanInstagram || null,
         status: 'pending', // Новые отзывы требуют модерации
       },
     })
